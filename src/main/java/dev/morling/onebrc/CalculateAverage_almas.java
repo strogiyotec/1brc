@@ -44,7 +44,8 @@ public final class CalculateAverage_almas {
             Field theUnsafe = Unsafe.class.getDeclaredField("theUnsafe");
             theUnsafe.setAccessible(true);
             return (Unsafe) theUnsafe.get(Unsafe.class);
-        } catch (NoSuchFieldException | IllegalAccessException e) {
+        }
+        catch (NoSuchFieldException | IllegalAccessException e) {
             throw new RuntimeException(e);
         }
     }
@@ -80,7 +81,6 @@ public final class CalculateAverage_almas {
     }
 
     private static void computeChunks(final FileChannel channel, final int threads, final ExecutorService executorService) throws IOException {
-        final Instant before = Instant.now();
         final long fileSize = channel.size();
         final long estimatedChunkSize = fileSize / threads;
         final long mappedAddress = channel.map(FileChannel.MapMode.READ_ONLY, 0L, fileSize, Arena.global()).address();
@@ -90,26 +90,24 @@ public final class CalculateAverage_almas {
         while (chunkStart < fileSize) {
             final long startPosition = chunkStart + chunkEnd;
             final MappedByteBuffer buffer = channel.map(
-                FileChannel.MapMode.READ_ONLY,
-                startPosition,
-                Math.min(
-                    fileSize - startPosition, estimatedChunkSize));
+                    FileChannel.MapMode.READ_ONLY,
+                    startPosition,
+                    Math.min(
+                            fileSize - startPosition, estimatedChunkSize));
             while (buffer.get() != (byte) '\n') {
                 chunkEnd++;
             }
             // add a new line
             chunkEnd++;
             final Chunk chunk = new Chunk(
-                chunkStart + mappedAddress,
-                chunkEnd);
+                    chunkStart + mappedAddress,
+                    chunkEnd);
             final int currentThreadId = threadId;
             executorService.submit(() -> CalculateAverage_almas.parseChunk(chunk, currentThreadId));
             chunkStart += chunkEnd;
             chunkEnd = Math.min(estimatedChunkSize, fileSize - chunkStart - 1L/* leave a space for an empty line */);
             threadId++;
         }
-        final Instant after = Instant.now();
-        System.out.println("Chunks " + Duration.between(before, after).toMillis());
     }
 
     private static void parseChunk(final Chunk chunk, int currentThreadId) {
@@ -144,7 +142,8 @@ public final class CalculateAverage_almas {
                 if (UNSAFE.getByte(addressIndex + 3) == (byte) '\n') {
                     temperature = (UNSAFE.getByte(addressIndex) - '0') * 10;
                     addressIndex++;
-                } else {
+                }
+                else {
                     // -99.9
                     temperature = (UNSAFE.getByte(addressIndex) - '0') * 100;
                     addressIndex++;
@@ -157,13 +156,15 @@ public final class CalculateAverage_almas {
                 // go to next line char
                 addressIndex++;
                 temperature = -temperature;
-            } else {
+            }
+            else {
                 // go to next index
                 addressIndex++;
                 // 9.9
                 if (UNSAFE.getByte(addressIndex + 2) == (byte) '\n') {
                     temperature = (signOrNumber - '0') * 10;
-                } else {
+                }
+                else {
                     // 99.9
                     temperature = (signOrNumber - '0') * 100;
                     temperature += (UNSAFE.getByte(addressIndex) - '0') * 10;
@@ -195,14 +196,16 @@ public final class CalculateAverage_almas {
                 existingRow = this.array[slotIndex];
                 if (existingRow != null && existingRow.hasDifferentName(hash, name, nameLength)) {
                     slotIndex++;
-                } else {
+                }
+                else {
                     break;
                 }
                 slotIndex++;
             }
             if (existingRow != null) {
                 existingRow.merge(temperature);
-            } else {
+            }
+            else {
                 // need to copy it out because same name array will be reused for all remaining rows in this chunk
                 byte[] copiedName = new byte[nameLength];
                 System.arraycopy(name, 0, copiedName, 0, nameLength);
@@ -224,10 +227,12 @@ public final class CalculateAverage_almas {
                     if (currentRow == null) {
                         this.array[index] = otherRow;
                         break;
-                    } else if (!otherRow.hasDifferentName(currentRow.nameHashCode, currentRow.nameBytes, currentRow.nameBytes.length)) {
+                    }
+                    else if (!otherRow.hasDifferentName(currentRow.nameHashCode, currentRow.nameBytes, currentRow.nameBytes.length)) {
                         currentRow.merge(otherRow);
                         break;
-                    } else {
+                    }
+                    else {
                         index = (index + 1) & (MAP_SIZE - 1);
                     }
                 }
